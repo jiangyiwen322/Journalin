@@ -1,0 +1,7 @@
+{
+  "name": "Streamline Travel - AI Itinerary Planner",
+  "description": "A smart travel platform that transforms social media links into dynamic, optimized itineraries with AI-powered trade-off analysis.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
