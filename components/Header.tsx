@@ -21,22 +21,19 @@ const Header: React.FC<HeaderProps> = ({ onViewChange, currentView }) => {
       </div>
       
       <nav className="hidden md:flex items-center gap-10">
-        <button 
-          onClick={() => onViewChange(AppView.Home)}
-          className={`text-sm font-semibold transition-colors ${currentView === AppView.Home ? 'text-primary' : 'hover:text-primary'}`}
-        >
-          Explore
-        </button>
-        <button 
-          className={`text-sm font-semibold hover:text-primary transition-colors`}
-        >
-          My Trips
-        </button>
-        <button 
-          className={`text-sm font-semibold hover:text-primary transition-colors`}
-        >
-          Profile
-        </button>
+        {[
+          { view: AppView.Home, label: 'Explore' },
+          { view: AppView.Itinerary, label: 'Itinerary' },
+          { view: AppView.Memories, label: 'Memory Capsule' }
+        ].map(item => (
+          <button 
+            key={item.view}
+            onClick={() => onViewChange(item.view)}
+            className={`text-sm font-bold transition-all ${currentView === item.view ? 'text-primary' : 'text-[#508f95] hover:text-primary'}`}
+          >
+            {item.label}
+          </button>
+        ))}
       </nav>
 
       <div className="flex items-center gap-4">
@@ -45,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({ onViewChange, currentView }) => {
           <span className="absolute top-2 right-2 size-2 bg-accent rounded-full border border-white"></span>
         </button>
         <div 
-          className="size-10 rounded-full border-2 border-primary/20 bg-cover bg-center shadow-md"
+          className="size-10 rounded-full border-2 border-primary/20 bg-cover bg-center shadow-md cursor-pointer"
           style={{ backgroundImage: "url('https://picsum.photos/id/64/100/100')" }}
         ></div>
       </div>

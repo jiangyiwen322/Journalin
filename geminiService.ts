@@ -2,7 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Itinerary } from "./types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+// Always use process.env.API_KEY directly for initialization.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const ITINERARY_SCHEMA = {
   type: Type.OBJECT,
@@ -59,13 +60,15 @@ export const parseTravelLink = async (url: string): Promise<Itinerary> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: [{ parts: [{ text: prompt }] }],
+      // Using prompt directly as a string for clarity.
+      contents: prompt,
       config: {
         responseMimeType: "application/json",
         responseSchema: ITINERARY_SCHEMA
       }
     });
 
+    // Access the text property directly (not a method call).
     const data = JSON.parse(response.text || "{}");
     return data as Itinerary;
   } catch (error) {

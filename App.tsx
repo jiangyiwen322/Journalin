@@ -1,45 +1,70 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppView, Itinerary, Spark } from './types';
+import { AppView, Itinerary, Spark, UserPreferences } from './types';
 import Header from './components/Header';
 import Home from './components/Home';
 import ItineraryView from './components/ItineraryView';
-import DecisionModal from './components/DecisionModal';
+import DecisionCenter from './components/DecisionCenter';
+import MemoryCapsule from './components/MemoryCapsule';
 import { parseTravelLink } from './geminiService';
 
-const MOCK_SPARKS: Spark[] = [
-  {
-    id: '1',
-    location: 'Kyoto, Japan',
-    title: 'Hidden Zen Tea Houses',
-    description: 'A curated collection of minimalist architecture and traditional tea ceremonies in Arashiyama.',
-    imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=2070&auto=format&fit=crop',
-    status: 'Parsed'
-  },
-  {
-    id: '2',
-    location: 'Amalfi Coast, Italy',
-    title: 'Coastal Cliff Walks',
-    description: 'The best sunset viewpoints from Positano to Amalfi for high-contrast photography.',
-    imageUrl: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?q=80&w=2070&auto=format&fit=crop',
-    status: 'Saved'
-  },
-  {
-    id: '3',
-    location: 'New York, USA',
-    title: 'Art Deco Masterclass',
-    description: 'Architecture tour focusing on 1920s facades and interior lobby designs in Midtown.',
-    imageUrl: 'https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?q=80&w=2070&auto=format&fit=crop',
-    status: 'In Progress'
-  }
-];
+const KYOTO_DEMO: Itinerary = {
+  id: 'kyoto-demo',
+  location: 'Kyoto, Japan',
+  title: 'Kyoto Aesthetic & Zen',
+  tags: ['Culture', 'Photography', 'Trending'],
+  days: [{
+    dayNumber: 1,
+    title: 'Arashiyama & Gion District',
+    date: 'Oct 24, 2024',
+    activities: [
+      {
+        id: 'act-1',
+        type: 'Sightseeing',
+        title: 'Arashiyama Bamboo Grove',
+        time: '09:00 AM',
+        description: 'Morning walk through the iconic bamboo forest. Perfect for light photography.',
+        imageUrl: 'https://images.unsplash.com/photo-1542931287-023b922fa89b?q=80&w=600&auto=format&fit=crop',
+        lat: 35.0175, lng: 135.6713, durationMinutes: 60
+      },
+      {
+        id: 'act-2',
+        type: 'Culture',
+        title: 'Tenryu-ji Temple',
+        time: '11:00 AM',
+        description: 'UNESCO World Heritage site with a breathtaking Zen garden.',
+        imageUrl: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=600&auto=format&fit=crop',
+        lat: 35.0157, lng: 135.6738, durationMinutes: 90
+      },
+      {
+        id: 'act-3',
+        type: 'Dining',
+        title: 'Gion Kichi Kichi Omurice',
+        time: '01:30 PM',
+        description: 'The world-famous theatrical omurice in the heart of Gion.',
+        imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=600&auto=format&fit=crop',
+        lat: 35.0088, lng: 135.7708, durationMinutes: 60
+      },
+      {
+        id: 'act-4',
+        type: 'Relaxation',
+        title: 'Hanamikoji Street Stroll',
+        time: '04:00 PM',
+        description: 'Explore the traditional teahouses and hope for a Geisha sighting.',
+        imageUrl: 'https://images.unsplash.com/photo-1524413840049-1d37a5307567?q=80&w=600&auto=format&fit=crop',
+        lat: 35.0034, lng: 135.7749, durationMinutes: 120
+      }
+    ]
+  }]
+};
 
 export default function App() {
   const [view, setView] = useState<AppView>(AppView.Home);
-  const [currentItinerary, setCurrentItinerary] = useState<Itinerary | null>(null);
+  const [currentItinerary, setCurrentItinerary] = useState<Itinerary | null>(KYOTO_DEMO);
+  const [preferences, setPreferences] = useState<UserPreferences>({ spiceLevel: 'Mild', caffeine: true, pace: 50 });
   const [isLoading, setIsLoading] = useState(false);
-  const [showDecisionModal, setShowDecisionModal] = useState(false);
-  const [pendingAction, setPendingAction] = useState<{ type: 'delete' | 'relax', payload: any } | null>(null);
+  const [isDecisionActive, setIsDecisionActive] = useState(false);
+  const [pendingActivityId, setPendingActivityId] = useState<string | null>(null);
 
   const handleParseLink = async (url: string) => {
     setIsLoading(true);
@@ -48,44 +73,40 @@ export default function App() {
       setCurrentItinerary(result);
       setView(AppView.Itinerary);
     } catch (error) {
-      alert("Failed to parse the link. Let's try again with a default Kyoto plan.");
-      // Fallback or demo behavior
-      handleParseLink("https://kyoto-travel.com/sample"); 
+      setCurrentItinerary(KYOTO_DEMO);
+      setView(AppView.Itinerary);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const openDecision = (type: 'delete' | 'relax', payload: any) => {
-    setPendingAction({ type, payload });
-    setShowDecisionModal(true);
+  const handleTriggerDecision = (activityId: string) => {
+    setPendingActivityId(activityId);
+    setIsDecisionActive(true);
   };
 
   const handleApplyDecision = (approved: boolean) => {
-    if (approved && pendingAction && currentItinerary) {
-      // Logic to modify itinerary
-      if (pendingAction.type === 'delete') {
-        const updatedDays = currentItinerary.days.map(day => ({
-          ...day,
-          activities: day.activities.filter(a => a.id !== pendingAction.payload)
-        }));
-        setCurrentItinerary({ ...currentItinerary, days: updatedDays });
-      }
+    if (approved && pendingActivityId && currentItinerary) {
+      const updatedDays = currentItinerary.days.map(day => ({
+        ...day,
+        activities: day.activities.filter(a => a.id !== pendingActivityId)
+      }));
+      setCurrentItinerary({ ...currentItinerary, days: updatedDays });
     }
-    setShowDecisionModal(false);
-    setPendingAction(null);
+    setIsDecisionActive(false);
+    setPendingActivityId(null);
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col shimmer-bg">
+    <div className="flex min-h-screen w-full flex-col bg-[#fcfdfe] relative overflow-x-hidden">
       <Header onViewChange={setView} currentView={view} />
       
-      <main className="flex-1 flex flex-col items-center">
+      <main className="flex-1 w-full flex flex-col items-center">
         {view === AppView.Home && (
           <Home 
             onParse={handleParseLink} 
             isLoading={isLoading} 
-            sparks={MOCK_SPARKS}
+            sparks={[]} 
             onSelectSpark={() => setView(AppView.Itinerary)}
           />
         )}
@@ -93,36 +114,26 @@ export default function App() {
         {view === AppView.Itinerary && currentItinerary && (
           <ItineraryView 
             itinerary={currentItinerary} 
-            onModify={openDecision}
+            onTriggerDecision={handleTriggerDecision}
+            preferences={preferences}
+            onUpdatePrefs={(p) => setPreferences({ ...preferences, ...p })}
           />
+        )}
+
+        {view === AppView.Memories && (
+          <MemoryCapsule memories={[]} receipts={[]} onAddMemory={()=>{}} onAddReceipt={()=>{}} />
         )}
       </main>
 
-      {showDecisionModal && (
-        <DecisionModal 
-          onClose={() => setShowDecisionModal(false)} 
-          onConfirm={() => handleApplyDecision(true)}
+      {/* Dynamic Decision Center as a High-Impact Overlay */}
+      {isDecisionActive && currentItinerary && (
+        <DecisionCenter 
           activityTitle={
-            currentItinerary?.days[0]?.activities.find(a => a.id === pendingAction?.payload)?.title || 'Selected Place'
+            currentItinerary.days[0].activities.find(a => a.id === pendingActivityId)?.title || 'Selected Stop'
           }
+          onConfirm={() => handleApplyDecision(true)}
+          onCancel={() => handleApplyDecision(false)}
         />
-      )}
-
-      {/* Persistent Action Pill on Home */}
-      {view === AppView.Home && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-1 p-1 bg-[#0e191b] dark:bg-white text-white dark:text-[#0e191b] rounded-full shadow-2xl transition-all hover:scale-105">
-            <button className="flex items-center gap-2 px-6 py-2.5 rounded-full hover:bg-white/10 dark:hover:bg-black/5 transition-colors text-sm font-bold">
-              <span className="material-symbols-outlined text-lg">add_circle</span>
-              New Itinerary
-            </button>
-            <div className="w-px h-6 bg-white/20 dark:bg-black/10"></div>
-            <button className="flex items-center gap-2 px-6 py-2.5 rounded-full hover:bg-white/10 dark:hover:bg-black/5 transition-colors text-sm font-bold">
-              <span className="material-symbols-outlined text-lg">auto_fix</span>
-              Relaxation Mode
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );
