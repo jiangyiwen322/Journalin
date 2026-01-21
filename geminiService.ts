@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Itinerary } from "./types";
 
 // Always use process.env.API_KEY directly for initialization.
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.API_KEY });
 
 const ITINERARY_SCHEMA = {
   type: Type.OBJECT,
